@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Thesis Table of Contents</title>
+
+<style>
+body {
+    font-family: "Times New Roman", serif;
+    background: #ffffff;
+    margin: 40px;
+    color: #000;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.container {
+    width: 80%;
+    margin: auto;
+}
+
+/* TOC LINE */
+.toc-item {
+    display: flex;
+    align-items: center;
+    margin: 6px 0;
+}
+
+/* NUMBERING */
+.number {
+    width: 70px;
+}
+
+/* TEXT */
+.text {
+    border: none;
+    outline: none;
+    flex: 1;
+    font-size: 15px;
+}
+
+/* DOTS */
+.dots {
+    flex: 1;
+    border-bottom: 1px dotted black;
+    margin: 0 10px;
+}
+
+/* PAGE */
+.page {
+    width: 50px;
+    border: none;
+    text-align: right;
+}
+
+/* CHAPTER STYLE */
+.chapter .text {
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* INDENTATION */
+.level-1 .text { padding-left: 10px; }
+.level-2 .text { padding-left: 25px; }
+.level-3 .text { padding-left: 40px; }
+
+button {
+    margin: 8px;
+    padding: 7px 12px;
+    border: none;
+    background: black;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #333;
+}
+</style>
+</head>
+
+<body>
+
+<h2 contenteditable="true">TABLE OF CONTENTS</h2>
+
+<div class="container" id="toc"></div>
+
+<div style="text-align:center;">
+    <button onclick="addItem()">➕ Add Section</button>
+    <button onclick="autoFormat()">🔢 Auto Format</button>
+    <button onclick="saveData()">💾 Save</button>
+</div>
+
+<script>
+
+// LOAD SAVED DATA
+window.onload = function() {
+    let data = JSON.parse(localStorage.getItem("tocData")) || [];
+
+    if (data.length === 0) {
+        addItem("CHAPTER ONE: INTRODUCTION", "1");
+        addItem("Background of the Study", "1");
+        addItem("Statement of the problem", "1.2");
+    } else {
+        data.forEach(d => addItem(d.text, d.page));
+    }
+};
+
+// ADD ROW
+function addItem(text="New Section", page="") {
+    const toc = document.getElementById("toc");
+
+    let div = document.createElement("div");
+    div.className = "toc-item";
+
+    div.innerHTML = `
+        <span class="number"></span>
+        <input class="text" value="${text}">
+        <div class="dots"></div>
+        <input class="page" value="${page}">
+        <button onclick="removeItem(this)">❌</button>
+    `;
+
+    toc.appendChild(div);
+}
+
+// REMOVE
+function removeItem(btn) {
+    btn.parentElement.remove();
+    saveData();
+}
+
+// AUTO FORMAT (NUMBERING + BOLD CHAPTERS)
+function autoFormat() {
+    let items = document.querySelectorAll(".toc-item");
+
+    let chapter = 0;
+    let section = 0;
+    let sub = 0;
+
+    items.forEach(item => {
+        let text = item.querySelector(".text").value.trim();
+        let upper = text.toUpperCase();
+
+        item.classList.remove("chapter", "level-1", "level-2");
+
+        if (upper.startsWith("CHAPTER")) {
+            chapter++;
+            section = 0;
+            sub = 0;
+
+            item.querySelector(".number").innerText = "";
+            item.classList.add("chapter");
+
+        } else if (section >= 0) {
+            section++;
+            sub = 0;
+
+            item.querySelector(".number").innerText = chapter + "." + section;
+            item.classList.add("level-1");
+
+        }
+
+        // Detect sub-items automatically (short text = deeper)
+        if (text.length < 25 && !upper.startsWith("CHAPTER")) {
+            sub++;
+            item.querySelector(".number").innerText = chapter + "." + section + "." + sub;
+            item.classList.remove("level-1");
+            item.classList.add("level-2");
+        }
+    });
+
+    saveData();
+}
+
+// SAVE
+function saveData() {
+    let data = [];
+
+    document.querySelectorAll(".toc-item").forEach(item => {
+        data.push({
+            text: item.querySelector(".text").value,
+            page: item.querySelector(".page").value
+        });
+    });
+
+    localStorage.setItem("tocData", JSON.stringify(data));
+}
+
+// AUTO SAVE
+setInterval(saveData, 4000);
+
+</script>
+
+</body>
+</html>
